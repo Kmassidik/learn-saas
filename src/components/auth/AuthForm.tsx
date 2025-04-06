@@ -67,8 +67,12 @@ export default function AuthForm() {
       // Refresh the page to update auth state
       router.push("/dashboard");
       router.refresh();
-    } catch (error: any) {
-      setError(error.message || "An error occurred during authentication");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "An error occurred during authentication");
+      } else {
+        setError("An error occurred during authentication");
+      }
     } finally {
       setLoading(false);
     }
