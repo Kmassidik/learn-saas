@@ -1,7 +1,7 @@
 // components/tasks/TaskList.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Task, Category } from "@/lib/supabase";
 import TaskForm from "./TaskForm";
@@ -16,16 +16,17 @@ export default function TaskList() {
     "all" | "pending" | "in_progress" | "completed"
   >("all");
 
-  const fetchTasks = async () => {
+  // At the top of your component, memoize the fetchTasks function
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase
         .from("tasks")
         .select(
           `
-          *,
-          categories(*)
-        `
+        *,
+        categories(*)
+      `
         )
         .order("created_at", { ascending: false });
 
@@ -44,14 +45,19 @@ export default function TaskList() {
       })) as (Task & { category?: Category })[];
 
       setTasks(formattedTasks);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch tasks");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Error fetching tasks");
+      } else {
+        setError("Error fetching tasks");
+      }
       console.error("Error fetching tasks:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]); // Now fetchTasks only changes when filter changes
 
+  // Then in your useEffect
   useEffect(() => {
     fetchTasks();
 
@@ -70,7 +76,7 @@ export default function TaskList() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [filter]);
+  }, [fetchTasks]); // Now this is safe and won't cause infinite loops
 
   const handleStatusChange = async (
     taskId: string,
@@ -83,8 +89,12 @@ export default function TaskList() {
         .eq("id", taskId);
 
       if (error) throw error;
-    } catch (err: any) {
-      console.error("Error updating task status:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Error updating task status");
+      } else {
+        setError("Error updating task status");
+      }
     }
   };
 
@@ -97,7 +107,12 @@ export default function TaskList() {
       const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
       if (error) throw error;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Error deleting task");
+      } else {
+        setError("Error deleting task");
+      }
       console.error("Error deleting task:", err);
     }
   };
@@ -166,7 +181,17 @@ export default function TaskList() {
           <div className="flex rounded-md shadow-sm">
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "all" ||
+                  value === "pending" ||
+                  value === "in_progress" ||
+                  value === "completed"
+                ) {
+                  setFilter(value);
+                }
+              }}
               className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
             >
               <option value="all">All Tasks</option>
