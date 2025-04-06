@@ -83,8 +83,12 @@ export default function TaskForm({
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "An error occurred while saving the task");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "An error occurred while saving the task");
+      } else {
+        setError("An error occurred while saving the task");
+      }
     } finally {
       setLoading(false);
     }
