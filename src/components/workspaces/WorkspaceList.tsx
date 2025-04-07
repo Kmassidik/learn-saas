@@ -19,6 +19,14 @@ type Member = {
   username: string;
 };
 
+type WorkspaceMemberWithProfile = {
+  user_id: string;
+  role: string;
+  profiles: {
+    username: string;
+  }[];
+};
+
 export default function WorkspaceList() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +75,7 @@ export default function WorkspaceList() {
 
       // Combine and deduplicate the workspaces
       const memberWorkspacesData = memberWorkspaces
-        .map((item) => item.workspaces as Workspace)
+        .map((item) => item.workspaces as unknown as Workspace)
         .filter(Boolean);
 
       const allWorkspaces = [...ownedWorkspaces, ...memberWorkspacesData];
@@ -78,9 +86,13 @@ export default function WorkspaceList() {
       );
 
       setWorkspaces(uniqueWorkspaces);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch workspaces");
-      console.error("Error fetching workspaces:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to fetch workspaces");
+      } else {
+        setError("Failed to fetch workspaces");
+      }
+      console.error("Failed to fetch workspaces:", err);
     } finally {
       setLoading(false);
     }
@@ -102,14 +114,24 @@ export default function WorkspaceList() {
 
       if (error) throw error;
 
-      const formattedMembers = data.map((member) => ({
-        user_id: member.user_id,
-        role: member.role,
-        username: member.profiles?.username || "Unknown User",
-      }));
+      const formattedMembers = data.map(
+        (member: WorkspaceMemberWithProfile) => ({
+          user_id: member.user_id,
+          role: member.role,
+          username:
+            member.profiles && member.profiles.length > 0
+              ? member.profiles[0].username
+              : "Unknown User",
+        })
+      );
 
       setMembers(formattedMembers);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Error fetching workspace members");
+      } else {
+        setError("Error fetching workspace members");
+      }
       console.error("Error fetching workspace members:", err);
     } finally {
       setLoadingMembers(false);
@@ -158,11 +180,17 @@ export default function WorkspaceList() {
         .eq("id", workspaceId);
 
       if (error) throw error;
-    } catch (err: any) {
-      console.error("Error deleting workspace:", err);
-      alert(
-        "Failed to delete workspace. Check if it has active members or tasks."
-      );
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(
+          err.message ||
+            "Failed to delete workspace. Check if it has active members or tasks."
+        );
+      } else {
+        alert(
+          "Failed to delete workspace. Check if it has active members or tasks."
+        );
+      }
     }
   };
 

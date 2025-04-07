@@ -1,8 +1,8 @@
 // components/workspaces/WorkspaceForm.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Workspace = {
   id: string;
@@ -18,9 +18,15 @@ interface WorkspaceFormProps {
   onCancel: () => void;
 }
 
-export default function WorkspaceForm({ initialWorkspace, onSuccess, onCancel }: WorkspaceFormProps) {
-  const [name, setName] = useState(initialWorkspace?.name || '');
-  const [description, setDescription] = useState(initialWorkspace?.description || '');
+export default function WorkspaceForm({
+  initialWorkspace,
+  onSuccess,
+  onCancel,
+}: WorkspaceFormProps) {
+  const [name, setName] = useState(initialWorkspace?.name || "");
+  const [description, setDescription] = useState(
+    initialWorkspace?.description || ""
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,23 +39,27 @@ export default function WorkspaceForm({ initialWorkspace, onSuccess, onCancel }:
       if (initialWorkspace?.id) {
         // Update existing workspace
         const { error } = await supabase
-          .from('workspaces')
+          .from("workspaces")
           .update({ name, description })
-          .eq('id', initialWorkspace.id);
+          .eq("id", initialWorkspace.id);
 
         if (error) throw error;
       } else {
         // Create new workspace
         const { error } = await supabase
-          .from('workspaces')
+          .from("workspaces")
           .insert([{ name, description }]);
 
         if (error) throw error;
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while saving the workspace');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "An error occurred while saving the workspace");
+      } else {
+        setError("An error occurred while saving the workspace");
+      }
     } finally {
       setLoading(false);
     }
@@ -58,7 +68,10 @@ export default function WorkspaceForm({ initialWorkspace, onSuccess, onCancel }:
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700"
+        >
           Workspace Name
         </label>
         <input
@@ -72,7 +85,10 @@ export default function WorkspaceForm({ initialWorkspace, onSuccess, onCancel }:
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="description"
+          className="block text-sm font-medium text-gray-700"
+        >
           Description (optional)
         </label>
         <textarea
@@ -105,7 +121,11 @@ export default function WorkspaceForm({ initialWorkspace, onSuccess, onCancel }:
           disabled={loading}
           className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         >
-          {loading ? 'Saving...' : initialWorkspace?.id ? 'Update Workspace' : 'Create Workspace'}
+          {loading
+            ? "Saving..."
+            : initialWorkspace?.id
+            ? "Update Workspace"
+            : "Create Workspace"}
         </button>
       </div>
     </form>
